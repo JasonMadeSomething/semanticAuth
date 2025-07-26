@@ -20,7 +20,7 @@
 *.swp
 
 # Dependency files
-go.sum
+
 
 # OS
 .DS_Store
