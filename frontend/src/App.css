@@ -33,18 +33,17 @@ body {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
-  justify-content: center;
-  align-items: center;
+  flex-direction: column;
 }
 
 #root {
   width: 100%;
-  height: 100%;
+  flex: 1;
   display: flex;
-  justify-content: center;
-  align-items: center;
+  flex-direction: column;
+  padding-top: 2rem;
 }
 
 .app-container {
@@ -59,6 +58,7 @@ body {
   box-shadow: var(--box-shadow);
   position: relative;
   overflow: hidden;
+  min-height: 600px;
 }
 
 .app-container::before {
@@ -87,7 +87,7 @@ body {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  text-fill-color: transparent;
+  color: transparent;
 }
 
 .app-nav {
@@ -101,14 +101,14 @@ body {
 
 .app-nav button {
   padding: 0.75rem 2rem;
-  background-color: var(--light-color);
-  border: none;
+  background-color: #d0d7de;
+  border: 1px solid #64748b;
   border-radius: var(--border-radius);
-  color: var(--secondary-color);
+  color: #1e293b;
   cursor: pointer;
   transition: var(--transition);
   font-weight: 600;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .app-nav button:hover {
@@ -148,6 +148,32 @@ body {
   margin-bottom: 1.5rem;
   text-align: center;
   color: var(--primary-color);
+}
+
+.card {
+  background-color: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 20px rgba(0, 0, 0, 0.15);
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--gradient-primary);
 }
 
 /* Forms */
@@ -332,20 +358,47 @@ input[type="number"].threshold-input:focus {
   color: var(--secondary-color);
 }
 
-button {
-  width: 100%;
-  padding: 0.75rem;
-  background-color: var(--primary-color);
+button, .btn {
+  display: inline-block;
+  padding: 0.85rem 1.75rem;
+  background: var(--gradient-primary);
   color: white;
   border: none;
   border-radius: var(--border-radius);
-  font-size: 1rem;
   cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
   transition: var(--transition);
+  box-shadow: 0 4px 10px rgba(74, 144, 226, 0.25);
+  position: relative;
+  overflow: hidden;
 }
 
-button:hover {
-  background-color: var(--primary-hover);
+button:hover, .btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(74, 144, 226, 0.35);
+}
+
+button:active, .btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 5px rgba(74, 144, 226, 0.2);
+}
+
+button::after, .btn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+}
+
+button:hover::after, .btn:hover::after {
+  transform: translateX(0);
 }
 
 button:disabled {
@@ -379,14 +432,16 @@ button:disabled {
 
 .toggle-button {
   background-color: transparent;
-  color: var(--primary-color);
+  color: #1e293b;
   border: none;
-  padding: 0;
+  padding: 0.5rem 0.75rem;
   font-size: 0.9rem;
   text-decoration: underline;
   cursor: pointer;
   width: auto;
   margin-bottom: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .toggle-button:hover {
@@ -426,6 +481,22 @@ button:disabled {
 
 .checkbox-group input[type="checkbox"] {
   margin-right: 10px;
+}
+
+.chart-container {
+  margin-top: 20px;
+  padding: 20px;
+  background-color: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.chart-container:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.12);
 }
 
 .threshold-explanation {
@@ -517,12 +588,25 @@ input:checked + .slider:before {
 }
 
 /* Chart Styles */
-.chart-container {
-  margin-top: 20px;
-  padding: 15px;
+.report-card {
+  width: 100%;
+  max-width: 800px;
+  padding: 2rem;
   background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  position: relative;
+  overflow: hidden;
+}
+
+.report-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: var(--gradient-primary);
 }
 
 .chart-explanation {
@@ -601,15 +685,17 @@ input:checked + .slider:before {
 
 .table-container {
   width: 100%;
-  overflow-x: auto;
-  max-height: 60vh;
+  margin-top: 20px;
+  max-height: 400px;
   overflow-y: auto;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
 }
 
 .report-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 1rem;
+  background-color: white;
   table-layout: fixed;
 }
 

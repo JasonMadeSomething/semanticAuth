@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -25,8 +27,20 @@ func main() {
 
 	// Setup router
 	r := chi.NewRouter()
+
+	// Get CORS allowed origins from environment variable
+	// Format: comma-separated list of domains (e.g., "https://example.com,https://app.example.com")
+	// Default to "*" (all origins) if not specified
+	corsOrigins := os.Getenv("CORS_ALLOWED_ORIGINS")
+	allowedOrigins := []string{"*"} // Default to all origins
+
+	if corsOrigins != "" {
+		// Split the comma-separated list into a slice
+		allowedOrigins = strings.Split(corsOrigins, ",")
+	}
+
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"*"}, // For dev, allow all. Lock down in prod.
+		AllowedOrigins:   allowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
