@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -26,26 +26,26 @@ type ReportResponse struct {
 }
 
 func ReportHandler(w http.ResponseWriter, r *http.Request) {
-	var req ReportRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, "Invalid JSON")
-		return
+	// Get threshold from query parameter
+	thresholdStr := r.URL.Query().Get("threshold")
+	threshold := 0.88 // default threshold
+
+	if thresholdStr != "" {
+		parsedThreshold, err := strconv.ParseFloat(thresholdStr, 64)
+		if err == nil && parsedThreshold >= 0.5 && parsedThreshold <= 1.0 {
+			threshold = parsedThreshold
+		}
 	}
 
-	req.Username = strings.ToLower(strings.TrimSpace(req.Username))
-	// Username is now optional - if empty, we'll return all login attempts
-
-	if req.Threshold == 0 {
-		req.Threshold = 0.88 // default if omitted
-	}
+	// Get username from query parameter (optional)
+	username := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("username")))
 
 	coll := db.Client.Database("semantic_auth").Collection("login_attempts")
 
 	// Create filter based on whether username is provided
 	filter := bson.M{}
-	if req.Username != "" {
-		filter["username"] = req.Username
+	if username != "" {
+		filter["username"] = username
 	}
 
 	cursor, err := coll.Find(r.Context(),
@@ -69,7 +69,7 @@ func ReportHandler(w http.ResponseWriter, r *http.Request) {
 			Input:      attempt.Input,
 			Similarity: attempt.Similarity,
 			Timestamp:  attempt.Timestamp,
-			Passed:     attempt.Similarity >= req.Threshold,
+			Passed:     attempt.Similarity >= threshold,
 		})
 	}
 

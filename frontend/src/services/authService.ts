@@ -81,21 +81,19 @@ export const authService = {
   },
 
   // Get report data
-  async getReport(username?: string, threshold?: number): Promise<ApiResponse<ReportItem[]>> {
-    const reportData: any = {};
-    if (username) {
-      reportData.username = username;
-    }
+  async getReport(threshold?: string): Promise<ApiResponse<ReportItem[]>> {
+    // Build query parameters
+    const params = new URLSearchParams();
     if (threshold !== undefined) {
-      reportData.threshold = threshold;
+      params.append('threshold', threshold);
     }
     
-    const response = await fetch(`${API_URL}/report`, {
-      method: 'POST',
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    const response = await fetch(`${API_URL}/report${queryString}`, {
+      method: 'GET',
       headers: {
-        'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
-      body: JSON.stringify(reportData),
     });
 
     const data = await response.json();

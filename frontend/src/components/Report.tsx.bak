@@ -1,0 +1,347 @@
+import { useState, useEffect } from 'react';
+import authService from '../services/authService';
+import LoginAttemptsChart from './LoginAttemptsChart';
+
+interface LoginAttempt {
+  username?: string;
+  input: string;
+  similarity: number;
+  timestamp: string;
+  passed: boolean;
+}
+
+const Report = () => {
+  const [threshold, setThreshold] = useState(0.88);
+  const [reportData, setReportData] = useState<LoginAttempt[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [chartView, setChartView] = useState(true); // Default to chart view
+  const [chartKey, setChartKey] = useState<number>(Date.now());
+
+  useEffect(() => {
+    fetchReport();
+  }, [threshold]);
+  
+  // Force chart refresh when report data changes
+  useEffect(() => {
+    if (reportData.length > 0) {
+      setChartKey(Date.now());
+    }
+  }, [reportData]);
+  
+  // Clean up chart instance when component unmounts or when chartKey changes
+  useEffect(() => {
+    return () => {
+      // Destroy chart instance on cleanup
+      if (chartRef.current) {
+        chartRef.current.destroy();
+      }
+    };
+  }, [chartKey]);
+
+  // Reset chart when data changes
+  useEffect(() => {
+    setChartKey(Date.now());
+  }, [reportData, threshold]);
+
+  const fetchReport = async () => {
+    setIsLoading(true);
+    setError('');
+    try {
+      const response = await authService.getReport(threshold.toString());
+      if (response.success) {
+        setReportData(response.data || []);
+      } else {
+        setError(response.message || 'Failed to fetch report data');
+        setReportData([]);
+      }
+    } catch (err) {
+      setError('Error fetching report: ' + (err instanceof Error ? err.message : String(err)));
+      setReportData([]);
+    } finally {
+      setIsLoading(false);
+      // Generate new chart key to force re-render
+      setChartKey(Date.now());
+    }
+  };
+
+  // Prepare data for the scatter plot
+  const prepareChartData = () => {
+    if (!reportData || reportData.length === 0) {
+      return { datasets: [] };
+    }
+
+    
+    // Sort by timestamp and take the most recent 100 attempts
+    const recentAttempts = [...reportData]
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+      .slice(-100);
+
+    // Define chart point type
+    interface ChartPoint {
+      x: number;
+      y: number;
+      input: string;
+      timestamp: string;
+      passed: boolean;
+    }
+    
+    // Separate successful and failed attempts
+    const successData: ChartPoint[] = [];
+    const failData: ChartPoint[] = [];
+    
+    // Create data points with sequential x values
+    recentAttempts.forEach((attempt, index) => {
+      // Parse and clamp similarity value between 0 and 1
+      let similarity = parseFloat(attempt.similarity.toString());
+      if (isNaN(similarity)) {
+        console.warn("Invalid similarity value", attempt.similarity, attempt);
+        similarity = 0; // Default to 0 for invalid values
+      } else {
+        // Clamp between 0 and 1 to handle floating-point precision issues
+        similarity = Math.max(0, Math.min(1, similarity));
+      }
+      
+      const point = {
+        x: index + 1,
+        y: similarity,
+        similarity,
+        input: attempt.input,
+        timestamp: attempt.timestamp,
+        passed: attempt.passed
+      };
+      
+      if (attempt.passed) {
+        successData.push(point);
+      } else {
+        failData.push(point);
+      }
+    });
+    
+    // Create datasets
+    const datasets = [
+      {
+        label: 'Successful Attempts',
+        data: successData,
+        backgroundColor: 'rgba(75, 192, 192, 0.6)',
+        pointRadius: 4,
+        pointStyle: 'circle',
+        borderColor: 'rgba(75, 192, 192, 1)',
+        borderWidth: 1
+      },
+      {
+        label: 'Failed Attempts',
+        data: failData,
+        backgroundColor: 'rgba(255, 99, 132, 0.5)',
+        pointRadius: 4,
+        pointStyle: 'triangle',
+        borderColor: 'rgba(255, 99, 132, 1)',
+        borderWidth: 1
+      }
+    ];
+    
+    // Add threshold line if we have data
+    if (recentAttempts.length > 0) {
+      const thresholdValue = parseFloat(threshold.toString());
+      
+      // Use a different type for threshold line
+      type ThresholdPoint = { x: number; y: number };
+      
+      datasets.push({
+        label: `Threshold (${threshold})`,
+        data: [
+          { x: 1, y: thresholdValue } as ThresholdPoint,
+          { x: recentAttempts.length, y: thresholdValue } as ThresholdPoint
+        ],
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        borderColor: 'rgba(0, 0, 0, 0.7)',
+        borderWidth: 2,
+        borderDash: [5, 5],
+        pointRadius: 0,
+        type: 'line' as const
+      } as any); // Use type assertion for the threshold dataset
+    }
+    // Add debugging to verify counts
+    console.log("Success:", successData.length, "Fail:", failData.length, "Total:", successData.length + failData.length);
+    return { datasets };
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      x: {
+        type: 'linear' as const,
+        position: 'bottom' as const,
+        title: {
+          display: true,
+          text: 'Login Attempts (Time Sequence)'
+        },
+        ticks: {
+          stepSize: 1
+        },
+        min: 0.5, // Start just before 1 to ensure first point is visible
+        max: (reportData?.length || 10) + 0.5 // End just after last point to ensure last point is visible
+      },
+      y: {
+        type: 'linear' as const,
+        position: 'left' as const,
+        title: {
+          display: true,
+          text: 'Similarity'
+        },
+        beginAtZero: true,
+        min: 0,
+        max: 1,
+        ticks: {
+          stepSize: 0.1,
+          precision: 1,
+          // Force specific ticks
+          callback: function(value: any) {
+            return value.toFixed(1);
+          }
+        },
+        // Disable auto-scaling
+        grace: 0
+      }
+    },
+    plugins: {
+      tooltip: {
+        callbacks: {
+          label: function(context: any) {
+            const dataPoint = context.raw;
+            return [
+              `Password Input: ${dataPoint.input || 'N/A'}`,
+              `Similarity: ${typeof dataPoint.similarity === 'number' ? dataPoint.similarity.toFixed(4) : 'N/A'}`,
+              `Status: ${dataPoint.passed ? 'Success' : 'Failure'}`,
+              `Time: ${dataPoint.timestamp}`
+            ];
+          }
+        }
+      },
+      legend: {
+        position: 'top' as const
+      }
+    }
+  };
+
+  return (
+    <div className="report-container">
+      <div className="report-card">
+        <h2>Login Attempts Report</h2>
+        
+        <div className="report-controls">
+          <div className="threshold-control">
+            <label htmlFor="threshold">Similarity Threshold:</label>
+            <div className="numeric-input-container">
+              <input
+                type="number"
+                id="threshold"
+                min="0.5"
+                max="1.0"
+                step="0.01"
+                value={threshold}
+                onChange={(e) => {
+                  // Allow any input during typing
+                  if (e.target.value === '' || !isNaN(parseFloat(e.target.value))) {
+                    setThreshold(e.target.value === '' ? 0 : parseFloat(e.target.value));
+                  }
+                }}
+                onBlur={(e) => {
+                  // Validate on blur
+                  let value = parseFloat(e.target.value);
+                  if (isNaN(value) || value < 0.5) {
+                    value = 0.5;
+                  } else if (value > 1.0) {
+                    value = 1.0;
+                  }
+                  setThreshold(value);
+                }}
+                className="threshold-input"
+              />
+            </div>
+            <div className="threshold-explanation">
+              <p>* This value affects which attempts are shown as "Success" or "Failure" in the report (0.5-1.0)</p>
+            </div>
+          </div>
+          
+          <div className="view-toggle-switch">
+            <span className={chartView ? 'active-label' : ''}>Chart</span>
+            <label className="switch">
+              <input 
+                type="checkbox" 
+                checked={!chartView}
+                onChange={() => setChartView(!chartView)} 
+              />
+              <span className="slider round"></span>
+            </label>
+            <span className={!chartView ? 'active-label' : ''}>Table</span>
+          </div>
+          
+          <button className="get-report-btn" onClick={fetchReport}>
+            Get Report
+          </button>
+        </div>
+        
+        {error && <div className="error-message">{error}</div>}
+                }
+              }}
+              onBlur={(e) => {
+                // Validate on blur
+                let value = parseFloat(e.target.value);
+                if (isNaN(value) || value < 0.5) {
+                  value = 0.5;
+                } else if (value > 1.0) {
+                  value = 1.0;
+                }
+                setThreshold(value);
+              }}
+              className="threshold-input"
+            />
+            <div className="chart-explanation">
+              <h3>Chart Explanation</h3>
+              <ul>
+                <li>Each point represents a login attempt</li>
+                <li>X-axis: Time of the attempt</li>
+                <li>Y-axis: Similarity score (higher is better)</li>
+                <li>Circles: Successful logins</li>
+                <li>Triangles: Failed logins</li>
+                <li>The threshold line shows the current similarity threshold ({threshold})</li>
+              </ul>
+            </div>
+          </div>
+        ) : reportData.length > 0 ? (
+          <div className="table-container">
+            <table className="report-table">
+              <thead>
+                <tr>
+                  <th>Password Attempt</th>
+                  <th>Similarity</th>
+                  <th>Timestamp</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reportData.map((attempt, index) => (
+                  <tr 
+                    key={index} 
+                    className={attempt.passed ? 'success-row' : 'failure-row'}
+                  >
+                    <td>{attempt.input}</td>
+                    <td>{attempt.similarity.toFixed(4)}</td>
+                    <td>{attempt.timestamp}</td>
+                    <td>{attempt.passed ? 'Success' : 'Failure'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="no-data">No login attempts found</div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Report;
