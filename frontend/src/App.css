@@ -1,16 +1,19 @@
 /* Modern CSS for Semantic Authentication App */
 :root {
-  --primary-color: #4a6fa5;
-  --primary-hover: #3a5a8c;
+  --primary-color: #4a90e2;
+  --primary-hover: #3a7ac4;
   --secondary-color: #6c757d;
   --success-color: #28a745;
   --danger-color: #dc3545;
   --light-color: #f8f9fa;
   --dark-color: #343a40;
   --border-color: #dee2e6;
-  --border-radius: 4px;
-  --box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  --border-radius: 8px;
+  --box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
   --transition: all 0.3s ease;
+  --gradient-primary: linear-gradient(135deg, #4a90e2 0%, #3a7ac4 100%);
+  --gradient-success: linear-gradient(135deg, #28a745 0%, #218838 100%);
+  --gradient-danger: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
 }
 
 * {
@@ -25,7 +28,7 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f5f7fa;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e7eb 100%);
   color: #333;
   margin: 0;
   padding: 0;
@@ -52,46 +55,73 @@ body {
   margin: 0 auto;
   padding: 2rem;
   background-color: white;
-  border-radius: 10px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  box-shadow: var(--box-shadow);
+  position: relative;
+  overflow: hidden;
+}
+
+.app-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 5px;
+  background: var(--gradient-primary);
 }
 
 /* Header & Navigation */
 .app-header {
-  padding: 1.5rem 0;
+  padding: 2rem 0 1.5rem;
   text-align: center;
 }
 
 .app-header h1 {
   margin-bottom: 1.5rem;
   color: var(--primary-color);
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-fill-color: transparent;
 }
 
 .app-nav {
   display: flex;
   justify-content: center;
   gap: 1rem;
-  margin-bottom: 2rem;
+  margin-bottom: 2.5rem;
+  position: relative;
+  z-index: 1;
 }
 
 .app-nav button {
-  padding: 0.5rem 1.5rem;
+  padding: 0.75rem 2rem;
   background-color: var(--light-color);
-  border: 1px solid var(--border-color);
+  border: none;
   border-radius: var(--border-radius);
   color: var(--secondary-color);
   cursor: pointer;
   transition: var(--transition);
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .app-nav button:hover {
   background-color: var(--border-color);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .app-nav button.active {
-  background-color: var(--primary-color);
+  background: var(--gradient-primary);
   color: white;
   border-color: var(--primary-color);
+  box-shadow: 0 4px 10px rgba(74, 144, 226, 0.3);
 }
 
 /* Main Content */
@@ -120,22 +150,36 @@ body {
   color: var(--primary-color);
 }
 
+/* Forms */
 .form-group {
-  margin-bottom: 15px;
+  margin-bottom: 1.5rem;
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 5px;
-  font-weight: 500;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--dark-color);
+  font-size: 0.9rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
 .form-group input {
   width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 16px;
+  padding: 0.85rem 1rem;
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius);
+  font-size: 1rem;
+  transition: var(--transition);
+  background-color: #f9fafc;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2);
+  background-color: #fff;
 }
 
 .password-input-container {
