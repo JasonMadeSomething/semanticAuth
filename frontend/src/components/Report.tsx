@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import authService from '../services/authService';
 
 interface LoginAttempt {
+  username?: string;
   input: string;
   similarity: number;
   timestamp: string;
@@ -19,18 +20,16 @@ const Report = () => {
 
   const [username, setUsername] = useState('');
   const [threshold, setThreshold] = useState(0.88);
+  const [showAllUsers, setShowAllUsers] = useState(false);
 
   const fetchReport = async () => {
-    if (!username) {
-      setError('Please enter a username');
-      return;
-    }
+    // Allow empty username if showAllUsers is true
     
     setIsLoading(true);
     setError('');
     
     try {
-      const response = await authService.getReport(username, threshold);
+      const response = await authService.getReport(showAllUsers ? undefined : username, threshold);
       setReportData(response.data || []);
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to fetch report');
@@ -54,20 +53,32 @@ const Report = () => {
       <h2>Login Attempts Report</h2>
       
       <div className="report-form">
-        <div className="form-group">
-          <label htmlFor="username">Username</label>
+        <div className="form-group checkbox-group">
           <input
-            type="text"
-            id="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="Enter username to view report"
-            required
+            type="checkbox"
+            id="showAllUsers"
+            checked={showAllUsers}
+            onChange={(e) => setShowAllUsers(e.target.checked)}
           />
+          <label htmlFor="showAllUsers">Show all users (global report)</label>
         </div>
+
+        {!showAllUsers && (
+          <div className="form-group">
+            <label htmlFor="username">Username</label>
+            <input
+              type="text"
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Enter username to view report"
+              required
+            />
+          </div>
+        )}
         
         <div className="form-group">
-          <label htmlFor="threshold">Threshold ({threshold})</label>
+          <label htmlFor="threshold">Similarity Threshold ({threshold})</label>
           <input
             type="range"
             id="threshold"
@@ -77,6 +88,14 @@ const Report = () => {
             value={threshold}
             onChange={(e) => setThreshold(parseFloat(e.target.value))}
           />
+          <div className="threshold-explanation">
+            <p>The threshold determines what similarity score is considered a successful login:</p>
+            <ul>
+              <li>Higher values (closer to 1.0) require passwords to be more similar to the original</li>
+              <li>Lower values (closer to 0.5) are more lenient and allow more variation</li>
+              <li>This slider affects which attempts are shown as "Success" or "Failure" in the report</li>
+            </ul>
+          </div>
         </div>
         
         <button 
@@ -107,7 +126,7 @@ const Report = () => {
             <tbody>
               {reportData.map((attempt, index) => (
                 <tr key={index} className={attempt.passed ? 'success-row' : 'failure-row'}>
-                  <td>{username}</td>
+                  <td>{attempt.username || username}</td>
                   <td>{attempt.input}</td>
                   <td>{attempt.similarity.toFixed(4)}</td>
                   <td>{formatDate(attempt.timestamp)}</td>
