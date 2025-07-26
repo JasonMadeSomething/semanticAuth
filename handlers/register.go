@@ -24,7 +24,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	var req RegisterRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		RespondWithError(w, http.StatusBadRequest, "Invalid JSON")
 		return
 	}
 
@@ -32,7 +32,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	req.Password = strings.TrimSpace(req.Password)
 
 	if req.Username == "" || req.Password == "" {
-		http.Error(w, "Missing username or password", http.StatusBadRequest)
+		RespondWithError(w, http.StatusBadRequest, "Missing username or password")
 		return
 	}
 
@@ -41,17 +41,17 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	// Check if user exists
 	count, err := collection.CountDocuments(r.Context(), bson.M{"username": req.Username})
 	if err != nil {
-		http.Error(w, "DB error", http.StatusInternalServerError)
+		RespondWithError(w, http.StatusInternalServerError, "Database error occurred")
 		return
 	}
 	if count > 0 {
-		http.Error(w, "User already exists", http.StatusConflict)
+		RespondWithError(w, http.StatusConflict, "User already exists")
 		return
 	}
 
 	vec, err := openai.Embed(req.Password)
 	if err != nil {
-		http.Error(w, "Failed to embed password", http.StatusInternalServerError)
+		RespondWithError(w, http.StatusInternalServerError, "Failed to embed password")
 		log.Println("OpenAI error:", err)
 		return
 	}
@@ -67,10 +67,11 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 	_, err = collection.InsertOne(r.Context(), user)
 	if err != nil {
-		http.Error(w, "Failed to store user", http.StatusInternalServerError)
+		RespondWithError(w, http.StatusInternalServerError, "Failed to store user")
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte("User registered successfully"))
+	RespondWithSuccess(w, "User registered successfully", map[string]interface{}{
+		"username": req.Username,
+	})
 }

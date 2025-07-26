@@ -29,15 +29,12 @@ func ReportHandler(w http.ResponseWriter, r *http.Request) {
 	var req ReportRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		RespondWithError(w, http.StatusBadRequest, "Invalid JSON")
 		return
 	}
 
 	req.Username = strings.ToLower(strings.TrimSpace(req.Username))
-	if req.Username == "" {
-		http.Error(w, "Missing username", http.StatusBadRequest)
-		return
-	}
+	// Username is now optional - if empty, we'll return all login attempts
 
 	if req.Threshold == 0 {
 		req.Threshold = 0.88 // default if omitted
@@ -45,12 +42,18 @@ func ReportHandler(w http.ResponseWriter, r *http.Request) {
 
 	coll := db.Client.Database("semantic_auth").Collection("login_attempts")
 
+	// Create filter based on whether username is provided
+	filter := bson.M{}
+	if req.Username != "" {
+		filter["username"] = req.Username
+	}
+
 	cursor, err := coll.Find(r.Context(),
-		bson.M{"username": req.Username},
-		options.Find().SetSort(bson.D{{"timestamp", -1}}).SetLimit(20),
+		filter,
+		options.Find().SetSort(bson.D{{Key: "timestamp", Value: -1}}).SetLimit(50),
 	)
 	if err != nil {
-		http.Error(w, "Failed to query login attempts", http.StatusInternalServerError)
+		RespondWithError(w, http.StatusInternalServerError, "Failed to query login attempts")
 		return
 	}
 	defer cursor.Close(r.Context())
@@ -70,5 +73,5 @@ func ReportHandler(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	json.NewEncoder(w).Encode(results)
+	RespondWithSuccess(w, "Login attempts retrieved successfully", results)
 }

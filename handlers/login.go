@@ -25,14 +25,14 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		RespondWithError(w, http.StatusBadRequest, "Invalid JSON")
 		return
 	}
 
 	req.Username = strings.ToLower(strings.TrimSpace(req.Username))
 	req.Password = strings.TrimSpace(req.Password)
 	if req.Username == "" || req.Password == "" {
-		http.Error(w, "Missing username or password", http.StatusBadRequest)
+		RespondWithError(w, http.StatusBadRequest, "Missing username or password")
 		return
 	}
 
@@ -47,14 +47,14 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var user models.User
 	err = userColl.FindOne(r.Context(), bson.M{"username": req.Username}).Decode(&user)
 	if err != nil {
-		http.Error(w, "User not found", http.StatusUnauthorized)
+		RespondWithError(w, http.StatusUnauthorized, "User not found")
 		return
 	}
 
 	// Embed the guessed password
 	guessVec, err := openai.Embed(req.Password)
 	if err != nil {
-		http.Error(w, "Failed to embed password", http.StatusInternalServerError)
+		RespondWithError(w, http.StatusInternalServerError, "Failed to embed password")
 		log.Println("OpenAI error:", err)
 		return
 	}
@@ -62,7 +62,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	// Compare with stored
 	similarity, err := utils.CosineSimilarity(user.Vector, guessVec)
 	if err != nil {
-		http.Error(w, "Similarity calculation failed", http.StatusInternalServerError)
+		RespondWithError(w, http.StatusInternalServerError, "Similarity calculation failed")
 		return
 	}
 
@@ -78,8 +78,12 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Decide
 	if similarity >= threshold {
-		w.Write([]byte("Login successful"))
+		RespondWithSuccess(w, "Login successful", map[string]interface{}{
+			"username": req.Username,
+			"similarity": similarity,
+			"threshold": threshold,
+		})
 	} else {
-		http.Error(w, "Incorrect password (not semantically similar enough)", http.StatusUnauthorized)
+		RespondWithError(w, http.StatusUnauthorized, "Incorrect password (not semantically similar enough)")
 	}
 }
