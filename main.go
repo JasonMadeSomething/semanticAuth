@@ -43,6 +43,12 @@ func main() {
 	// Register route
 	r.Post("/register", handlers.RegisterHandler)
 
+	// Login route
+	r.Post("/login", handlers.LoginHandler)
+
+	// Report route
+	r.Get("/report", handlers.ReportHandler)
+
 	// Start server
 	log.Println("Listening on :8080")
 	log.Fatal(http.ListenAndServe(":8080", r))
