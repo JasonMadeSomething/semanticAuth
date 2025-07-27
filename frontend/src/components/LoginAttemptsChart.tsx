@@ -7,7 +7,8 @@ import {
   PointElement,
   LineElement,
   Tooltip,
-  Legend
+  Legend,
+  LineController
 } from 'chart.js';
 import 'chartjs-adapter-date-fns';
 
@@ -18,7 +19,8 @@ ChartJS.register(
   PointElement,
   LineElement,
   Tooltip,
-  Legend
+  Legend,
+  LineController
 );
 
 // Define the LoginAttempt interface
