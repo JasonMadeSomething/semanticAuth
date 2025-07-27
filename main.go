@@ -16,10 +16,13 @@ import (
 )
 
 func main() {
-	// Load environment variables
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
+	// Load environment variables from .env file only in local development
+	// In production, environment variables should be set in the environment
+	if os.Getenv("GO_ENV") != "production" {
+		err := godotenv.Load()
+		if err != nil {
+			log.Println("Warning: .env file not found, using environment variables")
+		}
 	}
 
 	// Connect to MongoDB
