@@ -36,11 +36,15 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	collection := db.Client.Database("semantic_auth").Collection("users")
+	log.Println("Received registration request for:", req.Username)
 
+	collection := db.Client.Database("semantic_auth").Collection("users")
+	log.Println("Checking if user exists...")
 	// Check if user exists
 	count, err := collection.CountDocuments(r.Context(), bson.M{"username": req.Username})
+	log.Println("Checked user count:", count)
 	if err != nil {
+		log.Println("Database error:", err)
 		RespondWithError(w, http.StatusInternalServerError, "Database error occurred")
 		return
 	}
@@ -49,6 +53,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Println("Embedding password...")
 	vec, err := openai.Embed(req.Password)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Failed to embed password")

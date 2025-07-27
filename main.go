@@ -65,8 +65,11 @@ func main() {
 
 	// Report route
 	r.Get("/report", handlers.ReportHandler)
-
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
 	// Start server
-	log.Println("Listening on :8080")
-	log.Fatal(http.ListenAndServe(":8080", r))
+	log.Println("Listening on :" + port)
+	log.Fatal(http.ListenAndServe(":"+port, r))
 }
