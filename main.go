@@ -13,6 +13,7 @@ import (
 
 	"semantic-auth/db"
 	"semantic-auth/handlers"
+	"semantic-auth/moderation"
 )
 
 func main() {
@@ -27,6 +28,9 @@ func main() {
 
 	// Connect to MongoDB
 	db.Connect()
+
+	// Initialize moderation service and check health
+	moderation.Initialize()
 
 	// Setup router
 	r := chi.NewRouter()
