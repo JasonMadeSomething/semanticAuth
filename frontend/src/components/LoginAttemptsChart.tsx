@@ -8,8 +8,9 @@ import {
   LineElement,
   Tooltip,
   Legend,
-  LineController
+  LineController,
 } from 'chart.js';
+import type { TooltipItem, Scale } from 'chart.js';
 import 'chartjs-adapter-date-fns';
 
 // Register Chart.js components
@@ -30,6 +31,19 @@ interface LoginAttempt {
   similarity: number;
   timestamp: string;
   passed: boolean;
+}
+
+// Define a custom interface for the threshold line dataset
+interface ThresholdDataset {
+  label: string;
+  data: Array<LoginAttempt & { x: number; y: number }>;
+  backgroundColor: string;
+  borderColor: string;
+  borderWidth: number;
+  borderDash: number[];
+  pointRadius: number;
+  pointStyle: string; // Required property
+  type: 'line';
 }
 
 // Props for the chart component
@@ -129,22 +143,37 @@ const LoginAttemptsChart = ({ reportData, threshold }: LoginAttemptsChartProps) 
     if (recentAttempts.length > 0) {
       const thresholdValue = parseFloat(threshold.toString());
       
-      // Use a different type for threshold line
-      type ThresholdPoint = { x: number; y: number };
-      
+      // Use type assertion to allow borderDash property
       datasets.push({
         label: `Threshold (${threshold})`,
         data: [
-          { x: 0, y: thresholdValue } as ThresholdPoint,  // Start before first point
-          { x: recentAttempts.length + 1, y: thresholdValue } as ThresholdPoint  // End after last point
+          { 
+            x: 0, 
+            y: thresholdValue,
+            // Add required ChartPoint properties
+            similarity: thresholdValue,
+            input: 'Threshold',
+            timestamp: new Date().toISOString(),
+            passed: false
+          },
+          { 
+            x: recentAttempts.length + 1, 
+            y: thresholdValue,
+            // Add required ChartPoint properties
+            similarity: thresholdValue,
+            input: 'Threshold',
+            timestamp: new Date().toISOString(),
+            passed: false
+          }
         ],
         backgroundColor: 'rgba(0, 0, 0, 0.7)',
         borderColor: 'rgba(0, 0, 0, 0.7)',
         borderWidth: 2,
         borderDash: [5, 5],
         pointRadius: 0,
+        pointStyle: 'dash', // Add required pointStyle property
         type: 'line' as const
-      } as any); // Use type assertion for the threshold dataset
+      } as ThresholdDataset); // Type assertion with specific interface
     }
     
     // Add debugging to verify counts
@@ -167,9 +196,9 @@ const LoginAttemptsChart = ({ reportData, threshold }: LoginAttemptsChartProps) 
         ticks: {
           stepSize: 1,
           precision: 0,  // Force whole numbers
-          callback: function(value: any) {
+          callback: function(this: Scale, value: number | string) {
             // Only show integer values
-            if (Number.isInteger(value)) {
+            if (typeof value === 'number' && Number.isInteger(value)) {
               return value;
             }
             return '';
@@ -192,8 +221,8 @@ const LoginAttemptsChart = ({ reportData, threshold }: LoginAttemptsChartProps) 
           stepSize: 0.1,
           precision: 1,
           // Force specific ticks
-          callback: function(value: any) {
-            return value.toFixed(1);
+          callback: function(this: Scale, value: number | string) {
+            return typeof value === 'number' ? value.toFixed(1) : value;
           }
         },
         // Disable auto-scaling
@@ -203,8 +232,8 @@ const LoginAttemptsChart = ({ reportData, threshold }: LoginAttemptsChartProps) 
     plugins: {
       tooltip: {
         callbacks: {
-          label: function(context: any) {
-            const dataPoint = context.raw;
+          label: function(context: TooltipItem<'scatter'>) {
+            const dataPoint = context.raw as LoginAttempt & { x: number; y: number };
             return [
               `Password Input: ${dataPoint.input || 'N/A'}`,
               `Similarity: ${typeof dataPoint.similarity === 'number' ? dataPoint.similarity.toFixed(4) : 'N/A'}`,

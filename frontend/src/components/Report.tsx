@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import authService from '../services/authService';
 import LoginAttemptsChart from './LoginAttemptsChart';
 
@@ -18,18 +18,8 @@ const Report = () => {
   const [chartView, setChartView] = useState(true); // Default to chart view
   const [chartKey, setChartKey] = useState<number>(Date.now());
 
-  useEffect(() => {
-    fetchReport();
-  }, [threshold]);
-  
-  // Force chart refresh when report data changes
-  useEffect(() => {
-    if (reportData.length > 0) {
-      setChartKey(Date.now());
-    }
-  }, [reportData]);
-
-  const fetchReport = async () => {
+  // Define fetchReport with useCallback to prevent it from changing on every render
+  const fetchReport = useCallback(async () => {
     setIsLoading(true);
     setError('');
     try {
@@ -46,7 +36,20 @@ const Report = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [threshold]);
+
+  useEffect(() => {
+    fetchReport();
+  }, [fetchReport]);
+  
+  // Force chart refresh when report data changes
+  useEffect(() => {
+    if (reportData.length > 0) {
+      setChartKey(Date.now());
+    }
+  }, [reportData]);
+
+  // fetchReport is now defined above with useCallback
 
   return (
     <div className="report-container">

@@ -29,7 +29,12 @@ const Register = () => {
 
   return (
     <div className="auth-form">
-      <h2>Register</h2>
+      <h2>Register for Semantic Auth</h2>
+      <p className="auth-description">
+        Semantic Auth is a password system that uses similarity matching instead of exact matches.
+        When you log in later, your password will be compared to what you register now, and if it's
+        similar enough, you'll be granted access. This allows for minor typos while still maintaining security.
+      </p>
       <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label htmlFor="username">Username</label>
