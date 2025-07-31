@@ -54,6 +54,14 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	// Embed the guessed password
 	guessVec, err := openai.Embed(req.Password)
 	if err != nil {
+		// Check if this is a moderation error
+		if strings.Contains(err.Error(), "moderation error") {
+			log.Println("Moderation error:", err)
+			RespondWithError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		
+		// Other embedding errors
 		RespondWithError(w, http.StatusInternalServerError, "Failed to embed password")
 		log.Println("OpenAI error:", err)
 		return

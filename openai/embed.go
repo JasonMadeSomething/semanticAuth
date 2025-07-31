@@ -10,6 +10,7 @@ import (
 
 	"semantic-auth/db"
 	"semantic-auth/models"
+	"semantic-auth/moderation"
 
 	"github.com/go-resty/resty/v2"
 	"go.mongodb.org/mongo-driver/bson"
@@ -22,11 +23,26 @@ func Embed(input string) ([]float64, error) {
 	clean := strings.TrimSpace(strings.ToLower(input))
 	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(clean)))
 
+	// Check content with moderation service
+	modResp, err := moderation.CheckContent(clean)
+	if err != nil {
+		return nil, fmt.Errorf("moderation check failed: %w", err)
+	}
+
+	// If content is not allowed, return error
+	if !modResp.Allowed {
+		message := "Content not allowed by moderation service"
+		if modResp.Message != "" {
+			message = modResp.Message
+		}
+		return nil, fmt.Errorf("moderation error: %s", message)
+	}
+
 	collection := db.Client.Database("semantic_auth").Collection("embeddings")
 
 	// Check cache (Mongo)
 	var cached models.Embedding
-	err := collection.FindOne(context.TODO(), bson.M{"hash": hash}).Decode(&cached)
+	err = collection.FindOne(context.TODO(), bson.M{"hash": hash}).Decode(&cached)
 	if err == nil {
 		return cached.Vector, nil
 	} else if err != mongo.ErrNoDocuments {
