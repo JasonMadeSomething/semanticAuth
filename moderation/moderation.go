@@ -34,7 +34,7 @@ func Initialize() {
 
 	// Ensure the URL doesn't end with a slash
 	moderationBaseURL = strings.TrimSuffix(moderationBaseURL, "/")
-	
+
 	// Check health endpoint
 	healthURL := fmt.Sprintf("%s/api/health", moderationBaseURL)
 	resp, err := client.R().
@@ -65,14 +65,14 @@ func CheckContent(content string) (*ModerationResponse, error) {
 
 	// Ensure the URL doesn't end with a slash
 	moderationBaseURL = strings.TrimSuffix(moderationBaseURL, "/")
-	
+
 	// Construct the full URL with the /api/moderate endpoint
 	moderationURL := fmt.Sprintf("%s/api/moderate", moderationBaseURL)
 
 	// Prepare request body
 	body := map[string]interface{}{
-		"content":        content,
-		"sending_system": "semantic-auth",
+		"content":       content,
+		"source_system": "semantic-auth",
 	}
 
 	// Send request to moderation service
