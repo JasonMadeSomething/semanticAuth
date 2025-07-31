@@ -32,10 +32,17 @@ const Login = () => {
   return (
     <div className="auth-form">
       <h2>Login to Semantic Auth</h2>
-      <p className="auth-description">
-        Semantic Auth uses fuzzy password matching based on similarity scores rather than exact matches.
-        Your password will be compared to what you registered, and if it's similar enough, you'll be logged in.
-      </p>
+      <div className="info-tooltip">
+        <span className="info-icon">ℹ️</span>
+        <div className="tooltip-content">
+          <p>Semantic Auth uses fuzzy password matching based on similarity scores rather than exact matches.</p>
+          <p>Your password will be compared to what you registered, and if it's similar enough, you'll be logged in.</p>
+        </div>
+      </div>
+      <div className="warning-banner">
+        <span className="warning-icon">⚠️</span>
+        <p>This is a demo system. Please do not use real passwords or sensitive information.</p>
+      </div>
       <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label htmlFor="username">Username</label>
