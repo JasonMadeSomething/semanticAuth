@@ -5,9 +5,11 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
+	"semantic-auth/cache"
 	"semantic-auth/db"
 	"semantic-auth/models"
 	"semantic-auth/moderation"
@@ -38,9 +40,22 @@ func Embed(input string) ([]float64, error) {
 		return nil, fmt.Errorf("moderation error: %s", message)
 	}
 
+	// Try to get embedding from external semantic cache if enabled
+	if cache.DefaultClient != nil && cache.DefaultClient.IsEnabled() {
+		vector, err := cache.DefaultClient.GetEmbedding(context.Background(), clean)
+		if err == nil {
+			// Successfully retrieved from external cache
+			log.Printf("Retrieved embedding from semantic cache for input: %s", clean)
+			return vector, nil
+		} else {
+			// Log the error but continue with fallback
+			log.Printf("Semantic cache retrieval failed: %v, falling back to local cache/OpenAI", err)
+		}
+	}
+
 	collection := db.Client.Database("semantic_auth").Collection("embeddings")
 
-	// Check cache (Mongo)
+	// Check local cache (MongoDB)
 	var cached models.Embedding
 	err = collection.FindOne(context.TODO(), bson.M{"hash": hash}).Decode(&cached)
 	if err == nil {
@@ -85,7 +100,7 @@ func Embed(input string) ([]float64, error) {
 
 	vector := result.Data[0].Embedding
 
-	// Cache it
+	// Cache it locally
 	embedding := models.Embedding{
 		Hash:   hash,
 		Input:  clean,
@@ -93,7 +108,15 @@ func Embed(input string) ([]float64, error) {
 	}
 	_, err = collection.InsertOne(context.TODO(), embedding)
 	if err != nil {
-		return nil, err
+		log.Printf("Warning: Failed to save embedding to local cache: %v", err)
+		// Continue despite the error
+	}
+
+	// Store in external semantic cache if enabled
+	if cache.DefaultClient != nil && cache.DefaultClient.IsEnabled() {
+		go func() {
+			cache.DefaultClient.StoreEmbedding(context.Background(), clean, vector)
+		}()
 	}
 
 	return vector, nil

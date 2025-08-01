@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/joho/godotenv"
 
+	"semantic-auth/cache"
 	"semantic-auth/db"
 	"semantic-auth/handlers"
 	"semantic-auth/moderation"
@@ -31,6 +32,9 @@ func main() {
 
 	// Initialize moderation service and check health
 	moderation.Initialize()
+
+	// Initialize semantic cache client
+	cache.Initialize()
 
 	// Setup router
 	r := chi.NewRouter()
