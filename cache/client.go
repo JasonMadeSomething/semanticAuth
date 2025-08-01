@@ -101,7 +101,7 @@ func (c *Client) StoreEmbedding(ctx context.Context, input string, vector []floa
 		SetContext(ctx).
 		SetBody(req).
 		SetHeader("Content-Type", "application/json").
-		Post(fmt.Sprintf("%s/api/cache", c.config.URL))
+		Post(fmt.Sprintf("%s/cache", c.config.URL))
 
 	if err != nil {
 		log.Printf("Failed to store embedding in cache: %v", err)
@@ -126,7 +126,7 @@ func (c *Client) HealthCheck(ctx context.Context) bool {
 
 	resp, err := c.client.R().
 		SetContext(ctx).
-		Get(fmt.Sprintf("%s/health", c.config.URL))
+		Get(fmt.Sprintf("%s/cache/health", c.config.URL))
 
 	if err != nil {
 		log.Printf("Cache health check failed: %v", err)
