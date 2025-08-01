@@ -49,7 +49,7 @@ func (c *Client) GetEmbedding(ctx context.Context, input string) ([]float64, err
 		SetContext(ctx).
 		SetBody(req).
 		SetHeader("Content-Type", "application/json").
-		Post(fmt.Sprintf("%s/api/cache", c.config.URL))
+		Post(fmt.Sprintf("%s/cache", c.config.URL))
 
 	if err != nil {
 		return nil, fmt.Errorf("cache request failed: %w", err)
